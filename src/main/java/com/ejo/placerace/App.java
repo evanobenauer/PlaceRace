@@ -2,6 +2,8 @@ package com.ejo.placerace;
 
 import com.ejo.glowlib.math.Vector;
 import com.ejo.glowui.Window;
+import com.ejo.placerace.scenes.GameScene;
+import com.ejo.placerace.scenes.TitleScene;
 
 public class App {
 
@@ -9,7 +11,7 @@ public class App {
             "PlaceRace",
             new Vector(100,100),
             new Vector(1800,1200),
-            new GameScene(),
+            new TitleScene(),
             true,4,60,60
     );
 

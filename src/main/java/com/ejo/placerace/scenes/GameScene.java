@@ -1,4 +1,4 @@
-package com.ejo.placerace;
+package com.ejo.placerace.scenes;
 
 import com.ejo.glowlib.math.Vector;
 import com.ejo.glowlib.misc.ColorE;
@@ -13,11 +13,11 @@ import com.ejo.glowui.util.*;
 import com.ejo.glowui.util.render.Fonts;
 import com.ejo.glowui.util.render.QuickDraw;
 import com.ejo.placerace.elements.Player;
-import com.ejo.uiphysics.elements.PhysicsDraggableUI;
 import com.ejo.uiphysics.elements.PhysicsObjectUI;
 import com.ejo.uiphysics.elements.PhysicsSurfaceUI;
 import com.ejo.uiphysics.util.GravityUtil;
 import com.ejo.uiphysics.util.VectorUtil;
+import org.lwjgl.opengl.GL11;
 
 import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
@@ -30,7 +30,10 @@ public class GameScene extends Scene {
 
     private final double friction = 1;
     double speed = 1;
+    double speedIncrease = .1;
     private double score = 0;
+
+    private int platformSize = 300;//1000; //TODO: Make Easy, Normal, and Hard mode have different platform sizes. Easy 1000, Normal 300, Hard 100
 
     private final Player player = new Player(new RectangleUI(new Vector(60,100),new Vector(20,20), new ColorE(0,200,0)));
     private final PhysicsSurfaceUI basePlatform = new PhysicsSurfaceUI(new Vector(0,1000),new Vector(1000,1000),ColorE.WHITE, friction, friction);
@@ -49,6 +52,7 @@ public class GameScene extends Scene {
         basePlatform.setPos(new Vector(0,1000));
 
         queueAddElements(basePlatform);
+        queueRemoveElements(player);
         queueAddElements(player);
     });
 
@@ -57,13 +61,14 @@ public class GameScene extends Scene {
         addElements(retryButton);
         addElements(basePlatform); //Add Collision Objects
         addElements(player); // Add Physics Objects
-        player.setDeltaT(.1);
+        player.setDeltaT(.1f);
         player.setVelocity(new Vector(100,0));
         retryButton.setRendered(false);
     }
 
     @Override
     public void draw() {
+        drawBackground();
         try {
             super.draw();
         } catch (NullPointerException e) {
@@ -72,20 +77,9 @@ public class GameScene extends Scene {
 
         QuickDraw.drawText("Score: " + (int)score, Fonts.getDefaultFont(30),new Vector(2,2),ColorE.WHITE);
 
-        if (gameOver) {
-            placingBlock = false;
-            QuickDraw.drawRect(Vector.NULL,getWindow().getScaledSize(),ColorE.RED.alpha(50));
-            QuickDraw.drawTextCentered("Game Over",Fonts.getDefaultFont(100),Vector.NULL,getWindow().getScaledSize(),ColorE.RED);
-            QuickDraw.drawTextCentered("Score: " + (int)score,Fonts.getDefaultFont(50),new Vector(0,100),getWindow().getScaledSize(),ColorE.RED);
-            retryButton.draw();
-            retryButton.setRendered(true);
-            retryButton.setPos(getWindow().getScaledSize().getMultiplied(.5).getAdded(retryButton.getSize().getMultiplied(-.5)));
-            retryButton.setPos(retryButton.getPos().getAdded(new Vector(0,200)));
-        } else {
-            retryButton.setRendered(false);
-        }
+        drawGameOverMenu();
 
-        //Draw Forces and Velocities
+        //Draw Force and Velocity Vectors
         if (getWindow().isDebug()) {
             LineUI lineUI = new LineUI(player.getCenter(), VectorUtil.getUIAngleFromVector(player.getNetForce()), player.getNetForce().getMagnitude() / 2, ColorE.BLUE, LineUI.Type.PLAIN, 4);
             lineUI.draw();
@@ -95,7 +89,7 @@ public class GameScene extends Scene {
         }
 
         if (placingBlock) {
-            RectangleUI rect = new RectangleUI(Vector.NULL,new Vector(300,50),true,3,ColorE.BLUE);
+            RectangleUI rect = new RectangleUI(Vector.NULL,new Vector(platformSize,50),true,3,ColorE.BLUE);
             rect.setCenter(getWindow().getScaledMousePos());
             rect.draw();
         }
@@ -128,7 +122,7 @@ public class GameScene extends Scene {
                     p.updateCollisionObjects(getPhysicsObjects());
                     p.setVelocity(new Vector(platformXVelocity, 0)); //Set Platform Velocity
                     if (p.isCollidingTop(player, 20, 20)) isOnPlatform = true; //Set isOnPlatform
-                    if (p.getPos().getAdded(p.getSize()).getX() < 0) queueRemoveElements(p); //Remove offscreen elements
+                    if (p.getPos().getAdded(p.getSize()).getX() < 0) queueRemoveElements(p); //Remove off screen elements
                 }
             }
         } catch (ConcurrentModificationException e) {
@@ -142,8 +136,8 @@ public class GameScene extends Scene {
         applyControls(isOnPlatform);
 
         //Maximum Velocity
-        double bound = 40;
-        player.setVelocity(new Vector((Double) NumberUtil.getBoundValue(player.getVelocity().getX(), -bound, bound), player.getVelocity().getY()));
+        double bound = 50;
+        player.setVelocity(new Vector((Double) NumberUtil.getBoundValue(player.getVelocity().getX(), -bound + platformXVelocity, bound), player.getVelocity().getY()));
         super.tick();
     }
 
@@ -163,14 +157,47 @@ public class GameScene extends Scene {
             if (button == Mouse.BUTTON_LEFT.getId() && !player.isMouseOver() && action == Mouse.ACTION_RELEASE) {
                 try {
                     PhysicsSurfaceUI surface;
-                    queueAddElements(surface = new PhysicsSurfaceUI(Vector.NULL, new Vector(300, 50), ColorE.WHITE, friction * 1.1, friction));
+                    //queueAddElements(surface = new PhysicsSurfaceUI(Vector.NULL, new Vector(300, 50), ColorE.WHITE, friction * 1.1, friction));
+                    queueAddElements(surface = new PhysicsSurfaceUI(Vector.NULL, new Vector(platformSize, 50), ColorE.WHITE, friction * 1.1, friction));
                     surface.setCenter(mousePos);
+                    surface.setDeltaT(.1f);
                     forcePlayerLastInList();
                 } catch (ConcurrentModificationException ignored) {
                 }
             }
         }
         super.onMouseClick(button, action, mods, mousePos);
+    }
+
+    private void drawGameOverMenu() {
+        if (gameOver) {
+            placingBlock = false;
+            QuickDraw.drawRect(Vector.NULL,getWindow().getScaledSize(),ColorE.RED.alpha(50));
+            QuickDraw.drawTextCentered("Game Over",Fonts.getDefaultFont(100),Vector.NULL,getWindow().getScaledSize(),ColorE.RED);
+            QuickDraw.drawTextCentered("Score: " + (int)score,Fonts.getDefaultFont(50),new Vector(0,100),getWindow().getScaledSize(),ColorE.RED);
+            retryButton.draw();
+            retryButton.setRendered(true);
+            retryButton.setPos(getWindow().getScaledSize().getMultiplied(.5).getAdded(retryButton.getSize().getMultiplied(-.5)));
+            retryButton.setPos(retryButton.getPos().getAdded(new Vector(0,200)));
+        } else {
+            retryButton.setRendered(false);
+        }
+    }
+
+    private void drawBackground() {
+        Vector pos = Vector.NULL;
+        Vector size = getSize();
+        GL11.glBegin(GL11.GL_QUADS);
+
+        GL11.glColor4f(0,0,0,0);
+        GL11.glVertex2f((float) pos.getX(), (float) pos.getY());
+        GL11.glVertex2f((float) pos.getX() + (float) size.getX(), (float) pos.getY());
+        GL11.glColor4f(0f, .2f,.5f,1);
+        GL11.glVertex2f((float) pos.getX() + (float) size.getX(), (float) pos.getY() + (float) size.getY());
+        GL11.glVertex2f((float) pos.getX(), (float) pos.getY() + (float) size.getY());
+
+        GL11.glEnd();
+        GL11.glColor4f(1, 1, 1, 1);
     }
 
     private void applyNaturalForces() {
@@ -200,16 +227,16 @@ public class GameScene extends Scene {
 
     private void addBarriers() {
         Random random = new Random();
-        if (watch.hasTimePassedS(2/speed)) {
+        if (watch.hasTimePassedS(2/speed + .5)) {
             for (int i = 0; i < random.nextInt(0, 3); i++) {
                 PhysicsSurfaceUI surface;
-                queueAddElements(surface = new PhysicsSurfaceUI(Vector.NULL, new Vector(25, 100), ColorE.WHITE, friction, friction));
+                queueAddElements(surface = new PhysicsSurfaceUI(Vector.NULL, new Vector(25, random.nextInt(50,200)), ColorE.WHITE, friction, friction));
                 surface.setPos(new Vector(getWindow().getScaledSize().getX(), random.nextInt(0, (int) getWindow().getScaledSize().getY())));
                 forcePlayerLastInList();
             }
             watch.restart();
             score++;
-            speed += .04;
+            speed += speedIncrease;
         }
     }
 
