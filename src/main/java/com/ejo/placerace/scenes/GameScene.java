@@ -19,6 +19,7 @@ import com.ejo.uiphysics.util.GravityUtil;
 import com.ejo.uiphysics.util.VectorUtil;
 import org.lwjgl.opengl.GL11;
 
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
 import java.util.Random;
@@ -29,11 +30,11 @@ public class GameScene extends Scene {
     private boolean placingBlock = false;
 
     private final double friction = 1;
-    double speed = 1;
-    double speedIncrease = .1;
+    double speed = 2;
+    double speedIncrease = .12;
     private double score = 0;
 
-    private int platformSize = 300;//1000; //TODO: Make Easy, Normal, and Hard mode have different platform sizes. Easy 1000, Normal 300, Hard 100
+    private final int platformSize = 300;//1000; //TODO: Make Easy, Normal, and Hard mode have different platform sizes. Easy 1000, Normal 300, Hard 100
 
     private final Player player = new Player(new RectangleUI(new Vector(60,100),new Vector(20,20), new ColorE(0,200,0)));
     private final PhysicsSurfaceUI basePlatform = new PhysicsSurfaceUI(new Vector(0,1000),new Vector(1000,1000),ColorE.WHITE, friction, friction);
@@ -45,7 +46,7 @@ public class GameScene extends Scene {
             if (element instanceof PhysicsObjectUI p) queueRemoveElements(p);
         }
         gameOver = false;
-        speed = 1;
+        speed = 2;
         score = 0;
         player.setPos(new Vector(60,100));
         player.setVelocity(new Vector(100,0));
@@ -129,7 +130,7 @@ public class GameScene extends Scene {
             e.printStackTrace();
         }
 
-        addBarriers();
+        addBarriersProgressively();
 
         applyNaturalForces();
 
@@ -157,11 +158,10 @@ public class GameScene extends Scene {
             if (button == Mouse.BUTTON_LEFT.getId() && !player.isMouseOver() && action == Mouse.ACTION_RELEASE) {
                 try {
                     PhysicsSurfaceUI surface;
-                    //queueAddElements(surface = new PhysicsSurfaceUI(Vector.NULL, new Vector(300, 50), ColorE.WHITE, friction * 1.1, friction));
                     queueAddElements(surface = new PhysicsSurfaceUI(Vector.NULL, new Vector(platformSize, 50), ColorE.WHITE, friction * 1.1, friction));
                     surface.setCenter(mousePos);
                     surface.setDeltaT(.1f);
-                    forcePlayerLastInList();
+                    forcePlayerLastElement();
                 } catch (ConcurrentModificationException ignored) {
                 }
             }
@@ -172,8 +172,8 @@ public class GameScene extends Scene {
     private void drawGameOverMenu() {
         if (gameOver) {
             placingBlock = false;
-            QuickDraw.drawRect(Vector.NULL,getWindow().getScaledSize(),ColorE.RED.alpha(50));
-            QuickDraw.drawTextCentered("Game Over",Fonts.getDefaultFont(100),Vector.NULL,getWindow().getScaledSize(),ColorE.RED);
+            drawGameOverBackground();
+            QuickDraw.drawTextCentered("Game Over",new Font("Arial Black",Font.PLAIN,100),Vector.NULL,getWindow().getScaledSize(),ColorE.RED);
             QuickDraw.drawTextCentered("Score: " + (int)score,Fonts.getDefaultFont(50),new Vector(0,100),getWindow().getScaledSize(),ColorE.RED);
             retryButton.draw();
             retryButton.setRendered(true);
@@ -193,6 +193,22 @@ public class GameScene extends Scene {
         GL11.glVertex2f((float) pos.getX(), (float) pos.getY());
         GL11.glVertex2f((float) pos.getX() + (float) size.getX(), (float) pos.getY());
         GL11.glColor4f(0f, .2f,.5f,1);
+        GL11.glVertex2f((float) pos.getX() + (float) size.getX(), (float) pos.getY() + (float) size.getY());
+        GL11.glVertex2f((float) pos.getX(), (float) pos.getY() + (float) size.getY());
+
+        GL11.glEnd();
+        GL11.glColor4f(1, 1, 1, 1);
+    }
+
+    private void drawGameOverBackground() {
+        Vector pos = Vector.NULL;
+        Vector size = getSize();
+        GL11.glBegin(GL11.GL_QUADS);
+
+        GL11.glColor4f(.7f,0,0,100/255f);
+        GL11.glVertex2f((float) pos.getX(), (float) pos.getY());
+        GL11.glVertex2f((float) pos.getX() + (float) size.getX(), (float) pos.getY());
+        GL11.glColor4f(1f, 0f,0f,100/255f);
         GL11.glVertex2f((float) pos.getX() + (float) size.getX(), (float) pos.getY() + (float) size.getY());
         GL11.glVertex2f((float) pos.getX(), (float) pos.getY() + (float) size.getY());
 
@@ -225,14 +241,14 @@ public class GameScene extends Scene {
         }
     }
 
-    private void addBarriers() {
+    private void addBarriersProgressively() {
         Random random = new Random();
         if (watch.hasTimePassedS(2/speed + .5)) {
             for (int i = 0; i < random.nextInt(0, 3); i++) {
                 PhysicsSurfaceUI surface;
                 queueAddElements(surface = new PhysicsSurfaceUI(Vector.NULL, new Vector(25, random.nextInt(50,200)), ColorE.WHITE, friction, friction));
                 surface.setPos(new Vector(getWindow().getScaledSize().getX(), random.nextInt(0, (int) getWindow().getScaledSize().getY())));
-                forcePlayerLastInList();
+                forcePlayerLastElement();
             }
             watch.restart();
             score++;
@@ -240,7 +256,7 @@ public class GameScene extends Scene {
         }
     }
 
-    private void forcePlayerLastInList() {
+    private void forcePlayerLastElement() {
         queueRemoveElements(player);
         queueAddElements(player);
     }
