@@ -1,11 +1,13 @@
 package com.ejo.placerace.scenes;
 
+import com.ejo.glowlib.math.Angle;
 import com.ejo.glowlib.math.Vector;
 import com.ejo.glowlib.misc.ColorE;
 import com.ejo.glowlib.time.StopWatch;
 import com.ejo.glowlib.util.NumberUtil;
 import com.ejo.glowui.scene.Scene;
 import com.ejo.glowui.scene.elements.ElementUI;
+import com.ejo.glowui.scene.elements.shape.CircleUI;
 import com.ejo.glowui.scene.elements.shape.LineUI;
 import com.ejo.glowui.scene.elements.shape.RectangleUI;
 import com.ejo.glowui.scene.elements.widget.ButtonUI;
@@ -13,6 +15,7 @@ import com.ejo.glowui.util.*;
 import com.ejo.glowui.util.render.Fonts;
 import com.ejo.glowui.util.render.QuickDraw;
 import com.ejo.placerace.elements.Player;
+import com.ejo.placerace.elements.SemiCircleUI;
 import com.ejo.uiphysics.elements.PhysicsObjectUI;
 import com.ejo.uiphysics.elements.PhysicsSurfaceUI;
 import com.ejo.uiphysics.util.GravityUtil;
@@ -33,6 +36,7 @@ public class GameScene extends Scene {
     double speed = 2;
     double speedIncrease = .12;
     private double score = 0;
+    private double cooldown = 0;
 
     private final int platformSize = 300;//1000; //TODO: Make Easy, Normal, and Hard mode have different platform sizes. Easy 1000, Normal 300, Hard 100
 
@@ -64,8 +68,11 @@ public class GameScene extends Scene {
         addElements(player); // Add Physics Objects
         player.setDeltaT(.1f);
         player.setVelocity(new Vector(100,0));
+        player.setDebugVectorCap(1000);
+        player.setDebugVectorForceScale(.5);
         retryButton.setRendered(false);
     }
+
 
     @Override
     public void draw() {
@@ -78,27 +85,23 @@ public class GameScene extends Scene {
 
         QuickDraw.drawText("Score: " + (int)score, Fonts.getDefaultFont(30),new Vector(2,2),ColorE.WHITE);
 
-        drawGameOverMenu();
-
-        //Draw Force and Velocity Vectors
-        if (getWindow().isDebug()) {
-            LineUI lineUI = new LineUI(player.getCenter(), VectorUtil.getUIAngleFromVector(player.getNetForce()), player.getNetForce().getMagnitude() / 2, ColorE.BLUE, LineUI.Type.PLAIN, 4);
-            lineUI.draw();
-
-            LineUI lineUI2 = new LineUI(player.getCenter(), VectorUtil.getUIAngleFromVector(player.getVelocity()), player.getVelocity().getMagnitude(), ColorE.RED, LineUI.Type.PLAIN, 2);
-            lineUI2.draw();
-        }
+        drawCooldownWheel(20);
 
         if (placingBlock) {
             RectangleUI rect = new RectangleUI(Vector.NULL,new Vector(platformSize,50),true,3,ColorE.BLUE);
             rect.setCenter(getWindow().getScaledMousePos());
             rect.draw();
         }
+
+        drawGameOverMenu();
+
     }
 
     @Override
     public void tick() {
         if (!watch.isStarted()) watch.start();
+        cooldown -= .05;
+        cooldown = Math.max(0,cooldown);
 
         //Reset net force every frame for recalculation
         player.setNetForce(Vector.NULL);
@@ -151,7 +154,7 @@ public class GameScene extends Scene {
 
     @Override
     public void onMouseClick(int button, int action, int mods, Vector mousePos) {
-        if (!gameOver) {
+        if (!gameOver && cooldown == 0) {
             if (action == Mouse.ACTION_CLICK && !player.isMouseOver()) placingBlock = true;
             if (action == Mouse.ACTION_RELEASE) placingBlock = false;
 
@@ -161,12 +164,23 @@ public class GameScene extends Scene {
                     queueAddElements(surface = new PhysicsSurfaceUI(Vector.NULL, new Vector(platformSize, 50), ColorE.WHITE, friction * 1.1, friction));
                     surface.setCenter(mousePos);
                     surface.setDeltaT(.1f);
+                    cooldown = 1;
                     forcePlayerLastElement();
                 } catch (ConcurrentModificationException ignored) {
                 }
             }
         }
         super.onMouseClick(button, action, mods, mousePos);
+    }
+
+    private void drawCooldownWheel(int size) {
+        if (cooldown > 0) {
+            ColorE color = new ColorE((int)(255 * cooldown),(int)(255 * (1-cooldown)),0,255);
+            Vector pos = getWindow().getScaledMousePos().getAdded(new Vector(25, -5));
+            new CircleUI(pos,ColorE.BLACK, (double) size + 5, CircleUI.Type.MEDIUM).draw();
+            new SemiCircleUI(pos, color, size, new Angle(360 * (1 - cooldown), true), CircleUI.Type.MEDIUM).draw();
+            new CircleUI(pos,ColorE.BLACK, (double) size - 10, CircleUI.Type.MEDIUM).draw();
+        }
     }
 
     private void drawGameOverMenu() {
