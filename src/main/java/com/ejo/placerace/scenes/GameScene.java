@@ -33,14 +33,14 @@ public class GameScene extends Scene {
 
     private final double friction = 1;
 
-    //TODO: change these variables based off of difficulty
-    private final int platformSize = 300;//1000; Easy 1000, Normal 300, Hard 100
-    private final double baseSpeed = 2;
-    private final double speedIncrease = .12;
-    private final double baseCoolDown = 1;
+    private final int platformSize;
+    private final double baseSpeed;
+    private final double speedIncrease;
+    private final double baseCoolDown;
+    private final int maxBarrierCount;
 
     private double speed;
-    private double currentCoolDown = 0;
+    private double coolDown;
 
     private final Player player = new Player(new RectangleUI(new Vector(60,100),new Vector(20,20), new ColorE(0,200,0)));
     private final PhysicsSurfaceUI basePlatform = new PhysicsSurfaceUI(new Vector(0,1000),new Vector(1000,1000),ColorE.WHITE, friction, friction);
@@ -55,11 +55,37 @@ public class GameScene extends Scene {
     public GameScene(TitleScene.Mode mode) {
         super("PlaceRace");
         this.mode = mode;
+        switch (getMode()) {
+            case EASY -> {
+                this.platformSize = 500;
+                this.baseSpeed = 1.5;
+                this.speedIncrease = .06;
+                this.baseCoolDown = .8;
+                this.maxBarrierCount = 2;
+            }
+            default -> { //Medium Difficulty
+                this.platformSize = 300;
+                this.baseSpeed = 2;
+                this.speedIncrease = .12;
+                this.baseCoolDown = 1;
+                this.maxBarrierCount = 2;
+            }
+            case HARD -> {
+                this.platformSize = 150;
+                this.baseSpeed = 3;
+                this.speedIncrease = .18;
+                this.baseCoolDown = 2;
+                this.maxBarrierCount = 3;
+            }
+
+        };
+
         addElements(retryButton);
+        retryButton.setRendered(false);
+
         resetGame();
         setUpPlayer();
         setUpPlatforms();
-        retryButton.setRendered(false);
     }
 
 
@@ -73,7 +99,7 @@ public class GameScene extends Scene {
 
         QuickDraw.drawText("Score: " + (int)score, Fonts.getDefaultFont(30),new Vector(2,2),ColorE.WHITE);
 
-        if (!isCooledDown()) RenderUtil.drawCoolDownWheel(baseCoolDown, currentCoolDown,getWindow().getScaledMousePos());
+        if (!isCooledDown()) RenderUtil.drawCoolDownWheel(baseCoolDown, coolDown,getWindow().getScaledMousePos());
 
         if (isPlacingPlatform()) RenderUtil.drawBlockPlaceOutline(platformSize,getWindow().getScaledMousePos());
 
@@ -147,6 +173,7 @@ public class GameScene extends Scene {
         setUpPlayer();
 
         score = 0;
+        coolDown = 0;
         placingPlatform = false;
 
         setGameOver(false);
@@ -168,60 +195,6 @@ public class GameScene extends Scene {
         speed = baseSpeed;
     }
 
-
-    private boolean updateGameOver() {
-        if (player.getPos().getX() < 0 || player.getPos().getY() > getWindow().getScaledSize().getY()) setGameOver(true);
-
-        if (isGameOver()) {
-            placingPlatform = false;
-            retryButton.setPos(getWindow().getScaledSize().getMultiplied(.5).getAdded(retryButton.getSize().getMultiplied(-.5)));
-            retryButton.setPos(retryButton.getPos().getAdded(new Vector(0,200)));
-            retryButton.setEnabled(true);
-            retryButton.tick(this,getWindow().getScaledMousePos());
-            return true;
-        } else {
-            retryButton.setEnabled(false);
-            return false;
-        }
-    }
-
-    private void updatePlatformCoolDown(double speed) {
-        currentCoolDown -= speed;
-        currentCoolDown = Math.max(0, currentCoolDown);
-    }
-
-    private boolean placePlatform(Vector mousePos) {
-        try {
-            currentCoolDown = baseCoolDown; //Set CoolDown
-            PhysicsSurfaceUI surface = new PhysicsSurfaceUI(Vector.NULL, new Vector(platformSize, 50), ColorE.WHITE, friction * 1.1, friction);
-            surface.setCenter(mousePos);
-            surface.setDeltaT(.1f);
-            queueAddElements(surface);
-            setPlayerLastInList();
-            return true;
-        } catch (ConcurrentModificationException ignored) {
-            return false;
-        }
-    }
-
-
-    private void addBarriersProgressively() {
-        if (!barrierWatch.isStarted()) barrierWatch.start();
-        Random random = new Random();
-        if (barrierWatch.hasTimePassedS(2/ speed + .5)) {
-            for (int i = 0; i < random.nextInt(0, 3); i++) {
-                PhysicsSurfaceUI surface;
-                queueAddElements(surface = new PhysicsSurfaceUI(Vector.NULL, new Vector(25, random.nextInt(50,200)), ColorE.WHITE, friction, friction));
-                surface.setPos(new Vector(getWindow().getScaledSize().getX(), random.nextInt(0, (int) getWindow().getScaledSize().getY())));
-                setPlayerLastInList();
-            }
-            barrierWatch.restart();
-            score++;
-            speed += speedIncrease;
-        }
-    }
-
-
     private void applyGravity(double g) {
         player.setNetForce(player.getNetForce().getAdded(GravityUtil.calculateSurfaceGravity(g, player)));
     }
@@ -241,6 +214,58 @@ public class GameScene extends Scene {
         boolean isLeftKeyDown = Key.KEY_LEFT.isKeyDown() || Key.KEY_A.isKeyDown();
 
         player.setNetForce(player.getNetForce().getAdded(isRightKeyDown ? force : isLeftKeyDown ? -force : 0, 0));
+    }
+
+    private boolean updateGameOver() {
+        if (player.getPos().getX() < 0 || player.getPos().getY() > getWindow().getScaledSize().getY()) setGameOver(true);
+
+        if (isGameOver()) {
+            placingPlatform = false;
+            retryButton.setPos(getWindow().getScaledSize().getMultiplied(.5).getAdded(retryButton.getSize().getMultiplied(-.5)));
+            retryButton.setPos(retryButton.getPos().getAdded(new Vector(0,200)));
+            retryButton.setEnabled(true);
+            retryButton.tick(this,getWindow().getScaledMousePos());
+            return true;
+        } else {
+            retryButton.setEnabled(false);
+            return false;
+        }
+    }
+
+    private void updatePlatformCoolDown(double speed) {
+        coolDown -= speed;
+        coolDown = Math.max(0, coolDown);
+    }
+
+    private boolean placePlatform(Vector mousePos) {
+        try {
+            coolDown = baseCoolDown; //Set CoolDown
+            PhysicsSurfaceUI surface = new PhysicsSurfaceUI(Vector.NULL, new Vector(platformSize, 50), ColorE.WHITE, friction * 1.1, friction);
+            surface.setCenter(mousePos);
+            surface.setDeltaT(.1f);
+            queueAddElements(surface);
+            setPlayerLastInList();
+            return true;
+        } catch (ConcurrentModificationException ignored) {
+            return false;
+        }
+    }
+
+
+    private void addBarriersProgressively() {
+        if (!barrierWatch.isStarted()) barrierWatch.start();
+        Random random = new Random();
+        if (barrierWatch.hasTimePassedS(2/ speed + .5)) {
+            for (int i = 0; i <= random.nextInt(0, maxBarrierCount); i++) {
+                PhysicsSurfaceUI surface;
+                queueAddElements(surface = new PhysicsSurfaceUI(Vector.NULL, new Vector(25, random.nextInt(50,200)), ColorE.WHITE, friction, friction));
+                surface.setPos(new Vector(getWindow().getScaledSize().getX(), random.nextInt(0, (int) getWindow().getScaledSize().getY())));
+                setPlayerLastInList();
+            }
+            barrierWatch.restart();
+            score++;
+            speed += speedIncrease;
+        }
     }
 
 
@@ -269,7 +294,7 @@ public class GameScene extends Scene {
     }
 
     public boolean isCooledDown() {
-        return currentCoolDown == 0;
+        return coolDown == 0;
     }
 
     public TitleScene.Mode getMode() {
