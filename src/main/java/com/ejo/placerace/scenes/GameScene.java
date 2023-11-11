@@ -43,7 +43,7 @@ public class GameScene extends Scene {
     private double coolDown;
 
     private final Player player = new Player(new RectangleUI(new Vector(60,100),new Vector(20,20), new ColorE(0,200,0)));
-    private final PhysicsSurfaceUI basePlatform = new PhysicsSurfaceUI(new Vector(0,1000),new Vector(1000,1000),ColorE.WHITE, friction, friction);
+    private final PhysicsSurfaceUI basePlatform = new PhysicsSurfaceUI(new RectangleUI(new Vector(0,1000),new Vector(1000,1000),ColorE.WHITE), friction, friction);
 
     private final StopWatch barrierWatch = new StopWatch();
 
@@ -78,7 +78,7 @@ public class GameScene extends Scene {
                 this.maxBarrierCount = 3;
             }
 
-        };
+        }
 
         addElements(retryButton);
         retryButton.setRendered(false);
@@ -112,7 +112,7 @@ public class GameScene extends Scene {
 
     @Override
     public void tick() {
-        updatePlatformCoolDown(.05);
+        updatePlacePlatformCoolDown(.05);
 
         if (updateGameOver()) return;
 
@@ -125,7 +125,7 @@ public class GameScene extends Scene {
                 if (element instanceof PhysicsSurfaceUI platform) {
                     platform.updateCollisionObjects(getPhysicsObjects());
                     platform.setVelocity(new Vector(platformXVelocity, 0)); //Set Platform Velocity
-                    if (platform.isCollidingTop(player, 20, 20)) player.setOnGround(true);
+                    if (platform.isColliding(player, PhysicsSurfaceUI.CollisionType.TOP)) player.setOnGround(true);
                     if (platform.getPos().getAdded(platform.getSize()).getX() < 0) queueRemoveElements(platform); //Remove off screen elements
                 }
             }
@@ -184,7 +184,7 @@ public class GameScene extends Scene {
         player.setPos(new Vector(60,100));
         player.setVelocity(new Vector(100,0));
 
-        player.setTickNetRecalculation(true);
+        player.setTickNetReset(true);
 
         player.setDebugVectorCap(1000);
         player.setDebugVectorForceScale(.5);
@@ -232,7 +232,7 @@ public class GameScene extends Scene {
         }
     }
 
-    private void updatePlatformCoolDown(double speed) {
+    private void updatePlacePlatformCoolDown(double speed) {
         coolDown -= speed;
         coolDown = Math.max(0, coolDown);
     }
@@ -240,7 +240,7 @@ public class GameScene extends Scene {
     private boolean placePlatform(Vector mousePos) {
         try {
             coolDown = baseCoolDown; //Set CoolDown
-            PhysicsSurfaceUI surface = new PhysicsSurfaceUI(Vector.NULL, new Vector(platformSize, 50), ColorE.WHITE, friction * 1.1, friction);
+            PhysicsSurfaceUI surface = new PhysicsSurfaceUI(new RectangleUI(Vector.NULL, new Vector(platformSize, 50), ColorE.WHITE), friction * 1.1, friction);
             surface.setCenter(mousePos);
             surface.setDeltaT(.1f);
             queueAddElements(surface);
@@ -258,7 +258,7 @@ public class GameScene extends Scene {
         if (barrierWatch.hasTimePassedS(2/ speed + .5)) {
             for (int i = 0; i <= random.nextInt(0, maxBarrierCount); i++) {
                 PhysicsSurfaceUI surface;
-                queueAddElements(surface = new PhysicsSurfaceUI(Vector.NULL, new Vector(25, random.nextInt(50,200)), ColorE.WHITE, friction, friction));
+                queueAddElements(surface = new PhysicsSurfaceUI(new RectangleUI(Vector.NULL, new Vector(25, random.nextInt(50,200)), ColorE.WHITE), friction, friction));
                 surface.setPos(new Vector(getWindow().getScaledSize().getX(), random.nextInt(0, (int) getWindow().getScaledSize().getY())));
                 setPlayerLastInList();
             }
