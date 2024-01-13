@@ -3,12 +3,10 @@ package com.ejo.placerace.elements;
 import com.ejo.glowlib.math.Vector;
 import com.ejo.glowlib.util.NumberUtil;
 import com.ejo.glowui.scene.elements.shape.RectangleUI;
-import com.ejo.glowui.util.Key;
+import com.ejo.glowui.util.input.Key;
 import com.ejo.uiphysics.elements.PhysicsObjectUI;
 import com.ejo.uiphysics.elements.PhysicsSurfaceUI;
 import com.ejo.uiphysics.util.GravityUtil;
-
-//TODO: If I am allowed to use GlowUI, just put the entiretiy of UIPhysics in here and pretend you did that
 
 public class Player extends PhysicsObjectUI {
 
