@@ -31,7 +31,7 @@ The game is built upon GlowUI and the UIPhysics library (both located in my repo
 ![title](img/PlaceRacePlatform.jpg)
 
 - The image shows the blue line (player vector) in the top wedge of the platform
-- When the player touches the platofrm, it will activate the push towards the top, as the vector angle is in that quadrant
+- When the player touches the platform, it will activate the push towards the top, as the vector angle is in that quadrant
  
 *Debug Force Vectors*
 - Using Ctrl+Shft+G, the game will enter debug mode
