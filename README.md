@@ -1,12 +1,10 @@
-Note: Say that the Platform code is located in UIPhysics Library
-
-
 # PlaceRace 2D Platformer
 
 ![title](img/placerace.gif)
 
 PlaceRace is a little game developed with inspiration from other 2D challenge platformers in mind including Geometry Dash or Flappy Bird
 This game uses true physics equtions and unique collision code to make sure everything runs smoothly and intuitive
+The game is built upon GlowUI and the UIPhysics library (both located in my repositories)
 
 *Premise*
 - PlaceRace is a game where you are racing against the clock! The world is filled with barriers and is it constantly speeding up!
@@ -21,11 +19,11 @@ This game uses true physics equtions and unique collision code to make sure ever
   - Friction is calculated in the form of Static & Kinetic using each platform as its base with a custom coefficient
 
 *Platform Collision Algorithm*
-
-- Platf0rms in the game use a special collision algorithm that works from all sides.
+- Platforms in the game use a special collision algorithm that works from all sides.
 - A vector is drawn from the center to each corner of the platform.
 - A vector is then drawn from the player to the center.
 - Using the angle from the player's vector, whatever cross the vector lies between, the player will be pushed in that direction
+- *Note: Code for the platform is located in my UIPhysics Library, which this game uses
 
 ![title](img/PlaceRacePlatform.jpg)
 
