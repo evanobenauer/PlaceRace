@@ -5,6 +5,7 @@
 PlaceRace is a little game developed with inspiration from other 2D challenge platformers in mind including Geometry Dash or Flappy Bird
 
 This game uses true physics equtions and unique collision code to make sure everything runs smoothly and intuitive
+
 The game is built upon GlowUI and the UIPhysics library (both located in my repositories)
 
 
