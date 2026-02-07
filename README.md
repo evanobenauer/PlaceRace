@@ -26,13 +26,14 @@ The game is built upon GlowUI and the UIPhysics library (both located in my repo
 - A vector is drawn from the center to each corner of the platform.
 - A vector is then drawn from the player to the center.
 - Using the angle from the player's vector, whatever cross the vector lies between, the player will be pushed in that direction
-- *Note: Code for the platform is located in my UIPhysics Library, which this game uses
+- *Note: Code for the platform is located in my UIPhysics Library, which this game uses:
+- https://github.com/evanobenauer/UIPhysics/blob/master/src/main/java/com/ejo/uiphysics/elements/PhysicsSurfaceUI.java 
 
 ![title](img/PlaceRacePlatform.jpg)
 
 - The image shows the blue line (player vector) in the top wedge of the platform
 - When the player touches the platform, it will activate the push towards the top, as the vector angle is in that quadrant
- 
+  
 *Debug Force Vectors*
 - Using Ctrl+Shft+G, the game will enter debug mode
 - Debug mode will draw the Velocity Vector (Red) and the Force Vector (Blue) for each object on screen
